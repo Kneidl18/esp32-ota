@@ -7,7 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
-#include "esp_event_loop.h"
+#include "esp_event.h"
 #include "esp_log.h"
 
 #include "lwip/err.h"
@@ -364,12 +364,12 @@ static void mqtt_app_start(const char *running_partition_label)
     const char *mqtt_access_token = get_mqtt_access_token(running_partition_label);
 
     esp_mqtt_client_config_t mqtt_cfg = {
-        .uri = mqtt_url,
-        .event_handle = mqtt_event_handler,
-        .port = mqtt_port,
-        .username = mqtt_access_token
+        .broker.address.uri = mqtt_url,
+        //.event_handle = mqtt_event_handler,
+        .broker.address.port = mqtt_port,
+        .credentials.username = mqtt_access_token,
     };
-
+    
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     APP_ABORT_ON_ERROR(esp_mqtt_client_start(mqtt_client));
 
@@ -419,7 +419,12 @@ static void start_ota(const char *current_ver, struct shared_keys ota_config)
             .cert_pem = (char *)server_cert_pem_start,
             .event_handler = _http_event_handler,
         };
-        esp_err_t ret = esp_https_ota(&config);
+        
+        esp_https_ota_config_t ota_config = {
+                .http_config = &config,
+            };
+        
+        esp_err_t ret = esp_https_ota(&ota_config);
         if (ret == ESP_OK)
         {
             esp_restart();
